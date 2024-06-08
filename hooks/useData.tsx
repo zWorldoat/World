@@ -1,20 +1,27 @@
-import useSWR from "swr";
+import useSWR, { mutate } from "swr";
 import axios from "axios";
+import { useEffect } from "react";
 
-// Define the fetcher function using Axios
 const fetcher = (url: string) =>
   axios.get(url).then((response) => response.data);
 
-// Define the return type of useData hook
 interface UseDataResult {
   data: any;
   isLoading: boolean;
   isError: any;
 }
 
-// Create a custom hook to fetch data with SWR
 const useData = (url: string): UseDataResult => {
   const { data, error } = useSWR(url, fetcher, { refreshInterval: 1000 });
+
+  // Optional: manually trigger data refresh every 1000 ms
+  useEffect(() => {
+    const interval = setInterval(() => {
+      mutate(url);
+    }, 1000);
+    return () => clearInterval(interval);
+  }, [url]);
+
   return {
     data,
     isLoading: !error && !data,
