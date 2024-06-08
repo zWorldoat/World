@@ -121,9 +121,9 @@ export async function GET(req: any, res: any) {
     const results = await Promise.allSettled(coinDataPromises);
 
     // Filter out successful results and extract data
-    const coinData = results
-      .filter((result) => result.status === "fulfilled")
-      .map((result) => result.value);
+    const coinData = results.flatMap((result) =>
+      result.status === "fulfilled" ? [result.value] : []
+    );
 
     // Send response with the fetched data
     return NextResponse.json(coinData);
