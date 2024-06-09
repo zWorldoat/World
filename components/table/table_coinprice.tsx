@@ -1,4 +1,5 @@
 import useData from "@/hooks/useData";
+import axios from "axios";
 import React, { useState, useEffect } from "react";
 
 function CalProfitEX(
@@ -31,6 +32,14 @@ function CalProfitEX(
     ConvertPrice: cointotal.toFixed(0),
     isProfit: isProfit.toFixed(2),
   };
+}
+
+async function setOrder(coinName: string, isUSDT: number) {
+  const response = await axios.get(
+    `/api/openWithdraw/${coinName + "USDT"}/${isUSDT}`
+  );
+  //const response = await axios.get("/api/getbalance");
+  console.log(response.data);
 }
 
 function CalProfitDefi(bids: any, budget: number, priceDefi: number) {
@@ -75,9 +84,9 @@ const TbCoinCompare: React.FC = () => {
           <div className="join join-vertical lg:join-horizontal">
             <button
               className="btn join-item btn-sm"
-              onClick={() => setBudget(100)}
+              onClick={() => setBudget(5)}
             >
-              100
+              5
             </button>
             <button
               className="btn join-item btn-sm"
@@ -159,7 +168,7 @@ const TbCoinCompare: React.FC = () => {
                         <button
                           className="btn join-item btn-xs btn-success"
                           disabled={!item.assetConfig.withdraw_enabled}
-                          // onClick={() => testclick(params2)}
+                          onClick={() => setOrder(item.name, budget)}
                         >
                           Buy
                         </button>

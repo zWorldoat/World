@@ -124,6 +124,7 @@ export async function GET(req: any, res: any) {
     const coinData = results.flatMap((result) =>
       result.status === "fulfilled" ? [result.value] : []
     );
+    // Set headers to prevent caching
 
     // Send response with the fetched data
     return NextResponse.json(coinData);

@@ -13,6 +13,7 @@
     "better-sqlite3": "^11.0.0",
     "coinex.com": "^1.2.1",
     "crypto-js": "^4.2.0",
+    "dotenv": "^16.4.5",
     "next": "14.2.3",
     "react": "^18",
     "react-dom": "^18",
