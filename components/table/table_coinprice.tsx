@@ -157,10 +157,10 @@ const TbCoinCompare: React.FC = () => {
                     <td>{item.name}</td>
                     <td>{df_price.price}</td>
                     <td>{EX_to_Defi?.RatePrice}</td>
-                    <td className={perEX > 5 ? "bg-lime-500" : "bg-red-500"}>
+                    <td className={perEX > 5 ? "bg-lime-700" : "bg-red-700"}>
                       {EX_to_Defi?.isProfit}
                     </td>
-                    <td className={perDF > 5 ? "bg-lime-500" : "bg-red-500"}>
+                    <td className={perDF > 5 ? "bg-lime-700" : "bg-red-700"}>
                       {Defi_to_EX.isProfit}
                     </td>
                     <td>
