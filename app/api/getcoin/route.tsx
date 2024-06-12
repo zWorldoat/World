@@ -63,22 +63,6 @@ interface CoinPriceData {
   [key: string]: PriceData;
 }
 
-interface CoinData {
-  name: string;
-  ticker: TickerData;
-  assetConfig: AssetConfigData;
-  chains: ChainData;
-  depth: DepthData;
-  price: CoinPriceData;
-  timestamp: number;
-}
-
-interface Coin {
-  name: string;
-  id: string;
-}
-
-// Function to fetch data for a coin
 async function fetchCoinData(coin: any) {
   try {
     const tickerResponse = await axios.get(
@@ -111,22 +95,12 @@ async function fetchCoinData(coin: any) {
 
 export async function GET(req: any, res: any) {
   try {
-    // Your logic for handling GET requests
     const coins = COIN_LISTS;
-
-    // Fetch data for each coin concurrently
     const coinDataPromises = coins.map(fetchCoinData);
-
-    // Wait for all promises to settle
     const results = await Promise.allSettled(coinDataPromises);
-
-    // Filter out successful results and extract data
     const coinData = results.flatMap((result) =>
       result.status === "fulfilled" ? [result.value] : []
     );
-    // Set headers to prevent caching
-
-    // Send response with the fetched data
     return NextResponse.json(coinData);
   } catch (error) {
     console.error("Error fetching data from APIs:", error);

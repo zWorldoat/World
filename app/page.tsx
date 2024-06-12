@@ -1,9 +1,8 @@
 "use client";
-
-import Image from "next/image";
-import Header from "@/components/Header/header";
+import React from "react";
 import TbCoinCompare from "@/components/table/table_coinprice";
-import useData from "@/hooks/useData";
+import FrameJupiter from "@/components/table/jupframe";
+import FrameSolscan from "@/components/table/solscan";
 
 export default function Home() {
   return (
@@ -11,9 +10,10 @@ export default function Home() {
       <div className="w-2/3 h-screen ">
         <TbCoinCompare />
       </div>
-      <div className="w-1/3 space-y-4">
-        <div className="w-full h-1/2 ">dase</div>
-        <div className="w-full h-1/2 ">asdas</div>
+      <div className="w-1/3 ">
+        {" "}
+        <FrameJupiter />
+        <FrameSolscan />
       </div>
     </main>
   );

@@ -1,10 +1,20 @@
 import axios from "axios";
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import sha256 from "crypto-js/sha256";
 import { enc } from "crypto-js";
 
+interface Balance {
+  available: string;
+  ccy: string;
+  frozen: string;
+}
 // Function to create the authorization header
-function createAuthorization(method, request_path, body_json, timestamp) {
+function createAuthorization(
+  method: String,
+  request_path: string,
+  body_json: any,
+  timestamp: any
+) {
   const text =
     method + request_path + body_json + timestamp + process.env.SECRET_KEY;
   const hash = sha256(text).toString(enc.Hex).toUpperCase();
@@ -33,13 +43,15 @@ async function getSpotBalance() {
   );
 
   const headers = {
-    "X-COINEX-KEY": process.env.ACCESS_ID,
+    "X-COINEX-KEY": process.env.ACCESS_EX_ID,
     "X-COINEX-SIGN": authorization,
     "X-COINEX-TIMESTAMP": timestamp,
   };
 
   try {
-    const res = await axios2.get("/v2/assets/spot/balance", { headers });
+    const res = await axios2.get("/v2/assets/spot/balance", {
+      headers,
+    });
     console.log("account info:\n", JSON.stringify(res.data, null, 2));
     return res.data;
   } catch (error) {
@@ -48,18 +60,34 @@ async function getSpotBalance() {
   }
 }
 
-export async function GET(req, res) {
-  try {
-    // Fetch data for spot balance
-    const results = await getSpotBalance();
+export async function GET(req: NextRequest) {
+  const { searchParams } = new URL(req.url);
+  const ccy = searchParams.get("ccy");
 
-    // Send response with the fetched data
-    return NextResponse.json(results);
-  } catch (error) {
-    console.error("Error fetching data from APIs:", error);
+  if (!ccy || typeof ccy !== "string") {
     return NextResponse.json(
-      { error: "Internal server error" },
-      { status: 500 }
+      { error: "Currency code (ccy) is required and must be a string" },
+      { status: 400 }
     );
+  }
+
+  try {
+    const results = await getSpotBalance();
+    const resData = results.data.find((item: Balance) => item.ccy === ccy);
+
+    if (!resData) {
+      return NextResponse.json(
+        { error: "Currency not found" },
+        { status: 404 }
+      );
+    }
+
+    return NextResponse.json(resData);
+  } catch (error) {
+    // console.error("Error fetching data from APIs:", error);
+    // return NextResponse.json(
+    //   { error: "Internal server error" },
+    //   { status: 500 }
+    // );
   }
 }

@@ -1,6 +1,12 @@
 import useData from "@/hooks/useData";
 import axios from "axios";
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
+import { ToastContainer, toast } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
+
+const handleButtonClick = (ids: string) => {
+  localStorage.setItem("idsCoin", ids);
+};
 
 function CalProfitEX(
   asks: any,
@@ -35,11 +41,19 @@ function CalProfitEX(
 }
 
 async function setOrder(coinName: string, isUSDT: number) {
-  const response = await axios.get(
-    `/api/openWithdraw/${coinName + "USDT"}/${isUSDT}`
-  );
-  //const response = await axios.get("/api/getbalance");
-  console.log(response.data);
+  const response = await axios.get(`/api/order/${coinName + "USDT"}/${isUSDT}`);
+  console.log(response.data.message);
+
+  if (response.data.message === "OK") {
+    toast.success("Order : " + response.data.message, {
+      position: "bottom-center",
+    });
+    const responsewd = await axios.get(`/api/openWithdraw/${coinName}`);
+  } else {
+    toast.error("Order : " + response.data.message, {
+      position: "bottom-center",
+    });
+  }
 }
 
 function CalProfitDefi(bids: any, budget: number, priceDefi: number) {
@@ -127,8 +141,8 @@ const TbCoinCompare: React.FC = () => {
             <thead>
               <tr>
                 <th>Coin</th>
-                <th>Price Defi</th>
                 <th>Price EX</th>
+                <th>Price Defi</th>
                 <th>Buy EX</th>
                 <th>Buy Defi</th>
               </tr>
@@ -137,6 +151,7 @@ const TbCoinCompare: React.FC = () => {
               {data.map((item: any, index: any) => {
                 const df_price = Object.values(item.price)[0] as {
                   price: number;
+                  id: string;
                 };
                 const EX_to_Defi = CalProfitEX(
                   item.depth.asks,
@@ -155,6 +170,7 @@ const TbCoinCompare: React.FC = () => {
                 return (
                   <tr key={index}>
                     <td>{item.name}</td>
+
                     <td>{df_price.price}</td>
                     <td>{EX_to_Defi?.RatePrice}</td>
                     <td className={perEX > 5 ? "bg-lime-700" : "bg-red-700"}>
@@ -175,9 +191,9 @@ const TbCoinCompare: React.FC = () => {
                         <button
                           className="btn join-item btn-xs btn-error"
                           disabled={!item.assetConfig.deposit_enabled}
-                          // onClick={() => handleButtonClick(coinaddress)}
+                          onClick={() => handleButtonClick(df_price.id)}
                         >
-                          Sell
+                          Send
                         </button>
                       </div>
                     </td>
@@ -188,6 +204,7 @@ const TbCoinCompare: React.FC = () => {
           </table>
         </div>
       </div>
+      <ToastContainer />
     </div>
   );
 };
