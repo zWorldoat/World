@@ -11,7 +11,7 @@ interface UseDataResult {
 }
 
 const useData = (url: string): UseDataResult => {
-  const { data, error } = useSWR(url, fetcher, { refreshInterval: 1000 });
+  const { data, error } = useSWR(url, fetcher, { refreshInterval: 5000 });
 
   return {
     data,
