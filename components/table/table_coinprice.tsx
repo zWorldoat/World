@@ -1,12 +1,8 @@
 import useData from "@/hooks/useData";
 import axios from "axios";
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
-
-const handleButtonClick = (ids: string) => {
-  localStorage.setItem("idsCoin", ids);
-};
 
 function CalProfitEX(
   asks: any,
@@ -85,6 +81,13 @@ function CalProfitDefi(bids: any, budget: number, priceDefi: number) {
 const TbCoinCompare: React.FC = () => {
   const { data, isLoading, isError } = useData("/api/getcoin");
   const [budget, setBudget] = useState(0);
+  const [coinids, setCoinids] = useState("");
+
+  const handleButtonClick = (ids: string) => {
+    useEffect(() => {
+      window.localStorage.setItem("idsCoin", ids);
+    });
+  };
 
   if (isLoading) return <div>Loading...</div>;
 
