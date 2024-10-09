@@ -1,8 +1,6 @@
 import axios from "axios";
 import { NextResponse } from "next/server";
 import { COIN_LISTS } from "./coinlist";
-// import sha256 from "crypto-js/sha256";
-// import { enc } from "crypto-js";
 
 interface TickerData {
   close: string;
@@ -18,89 +16,99 @@ interface TickerData {
   volume_sell: string;
 }
 
-interface AssetConfigData {
-  ccy: string;
-  deposit_enabled: boolean;
-  withdraw_enabled: boolean;
-  inter_transfer_enabled: boolean;
-  is_st: boolean;
-}
-
-interface ChainData {
-  chain: string;
-  min_deposit_amount: string;
-  min_withdraw_amount: string;
-  deposit_enabled: boolean;
-  withdraw_enabled: boolean;
-  deposit_delay_minutes: number;
-  safe_confirmations: number;
-  irreversible_confirmations: number;
-  deflation_rate: string;
-  withdrawal_fee: string;
-  withdrawal_precision: number;
-  memo: string;
-  is_memo_required_for_deposit: boolean;
-  explorer_asset_url: string;
-}
-
-interface DepthData {
-  asks: Array<[string, string]>;
-  bids: Array<[string, string]>;
-  checksum: number;
-  last: string;
-  updated_at: number;
-}
-
-interface PriceData {
-  id: string;
-  mintSymbol: string;
-  vsToken: string;
-  vsTokenSymbol: string;
-  price: number;
-}
+// Other interface definitions...
 
 interface CoinPriceData {
   [key: string]: PriceData;
 }
 
-async function fetchCoinData(coin: any) {
+async function fetchWithLogging(url: string) {
+  console.log(`Fetching: ${url}`);
   try {
-    const tickerResponse = await axios.get(
-      `https://api.coinex.com/v2/spot/ticker?market=${coin.name}USDT`
-    );
-    const assetConfigResponse = await axios.get(
-      `https://api.coinex.com/v2/assets/deposit-withdraw-config?ccy=${coin.name}`
-    );
-    const depthResponse = await axios.get(
-      `https://api.coinex.com/v2/spot/depth?market=${coin.name}USDT&limit=50&interval=0.0000000001`
-    );
-    const priceResponse = await axios.get(
-      `https://price.jup.ag/v6/price?ids=${coin.id}&vsToken=USDT`
-    );
+    const response = await axios.get(url);
+    console.log(`Success: ${url}`);
+    return response;
+  } catch (error) {
+    if (axios.isAxiosError(error)) {
+      console.error(`Error fetching ${url}: ${error.message}`);
+      console.error(`Status: ${error.response?.status}`);
+      console.error(`Data: ${JSON.stringify(error.response?.data)}`);
+    } else {
+      console.error(`Unknown error fetching ${url}: ${error}`);
+    }
+    throw error;
+  }
+}
 
-    return {
-      name: coin.name,
-      ticker: tickerResponse.data.data[0] as TickerData,
-      assetConfig: assetConfigResponse.data.data.asset as AssetConfigData,
-      chains: assetConfigResponse.data.data.chains[0] as ChainData,
-      depth: depthResponse.data.data.depth as DepthData,
-      price: priceResponse.data.data as CoinPriceData,
-      timestamp: priceResponse.data.timeTaken as number,
-    };
+async function fetchPriceDataInBatches(coins: any[], batchSize: number = 100) {
+  let allPriceData: CoinPriceData = {};
+  for (let i = 0; i < coins.length; i += batchSize) {
+    const batchCoins = coins.slice(i, i + batchSize);
+    const batchIds = batchCoins.map(coin => coin.id).join(',');
+    const priceUrl = `https://api.jup.ag/price/v2?ids=${batchIds}&showExtraInfo=true`;
+    try {
+      const priceResponse = await fetchWithLogging(priceUrl);
+      Object.assign(allPriceData, priceResponse.data.data);
+    } catch (error) {
+      console.error(`Error fetching batch price data (${i} to ${i + batchSize}):`, error);
+    }
+  }
+  return allPriceData;
+}
+
+async function fetchCoinData(coins: any[]) {
+  try {
+    const allPriceData = await fetchPriceDataInBatches(coins);
+
+    const coinDataPromises = coins.map(async (coin) => {
+      try {
+        const [depthResponse, tickerResponse, assetConfigResponse] = await Promise.all([
+          fetchWithLogging(`https://api.coinex.com/v2/spot/depth?market=${coin.name.split("USDT")[0]}USDT&limit=50&interval=0.0000000001`),
+          fetchWithLogging(`https://api.coinex.com/v2/spot/ticker?market=${coin.name}`),
+          fetchWithLogging(`https://api.coinex.com/v2/assets/deposit-withdraw-config?ccy=${coin.name.split("USDT")[0]}`)
+        ]);
+
+        const priceData = allPriceData[coin.id];
+        const buyPrice = priceData?.extraInfo?.quotedPrice?.buyPrice || null;
+
+        return {
+          name: coin.name,
+          ticker: tickerResponse.data.data[0],
+          assetConfig: assetConfigResponse.data.data.asset,
+          chains: assetConfigResponse.data.data.chains[0],
+          depth: depthResponse.data.data.depth,
+          price: {
+            [coin.id]: {
+              ...priceData,
+              buyPrice: buyPrice
+            }
+          },
+          timestamp: Date.now(),
+        };
+      } catch (error: any) {
+        console.error(`Error fetching data for ${coin.name}:`, error.message);
+        return null;
+      }
+    });
+
+    const results = await Promise.all(coinDataPromises);
+    return results.filter(result => result !== null);
   } catch (error: any) {
-    console.error(`Error fetching data for ${coin.name}:`, error.message);
-    return null;
+    console.error("Error in fetchCoinData:", error.message);
+    return [];
   }
 }
 
 export async function GET(req: any, res: any) {
   try {
+    console.log("Starting to fetch coin data");
     const coins = COIN_LISTS;
-    const coinDataPromises = coins.map(fetchCoinData);
-    const results = await Promise.allSettled(coinDataPromises);
-    const coinData = results.flatMap((result) =>
-      result.status === "fulfilled" ? [result.value] : []
-    );
+    const coinData = await fetchCoinData(coins);
+    
+    // Count the number of successfully fetched coin data
+    console.log(`Total coins fetched: ${coinData.length}`);
+    
+    console.log("Finished fetching coin data");
     return NextResponse.json(coinData);
   } catch (error) {
     console.error("Error fetching data from APIs:", error);

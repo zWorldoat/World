@@ -1,33 +1,36 @@
 import React, { useState, useEffect } from "react";
 
 const FrameJupiter: React.FC = () => {
-  const [idsCoin, setIdsCoin] = useState<string | null>(
-    localStorage.getItem("idsCoin")
-  );
+  const [idsCoin, setIdsCoin] = useState<string | null>(null);
 
-  // Update state when localStorage changes
   useEffect(() => {
-    const handleStorageChange = () => {
+    // Check if window is defined (ensure this code runs only on the client side)
+    if (typeof window !== "undefined") {
       setIdsCoin(localStorage.getItem("idsCoin"));
-    };
 
-    window.addEventListener("storage", handleStorageChange);
+      const handleStorageChange = () => {
+        setIdsCoin(localStorage.getItem("idsCoin"));
+      };
 
-    return () => {
-      window.removeEventListener("storage", handleStorageChange);
-    };
+      window.addEventListener("storage", handleStorageChange);
+
+      return () => {
+        window.removeEventListener("storage", handleStorageChange);
+      };
+    }
   }, []);
 
-  // This effect sets up interval for checking localStorage change every 1 second
   useEffect(() => {
-    const interval = setInterval(() => {
-      const newData = localStorage.getItem("idsCoin");
-      if (newData !== idsCoin) {
-        setIdsCoin(newData);
-      }
-    }, 5000);
+    if (typeof window !== "undefined") {
+      const interval = setInterval(() => {
+        const newData = window.localStorage.getItem("idsCoin");
+        if (newData !== idsCoin) {
+          setIdsCoin(newData);
+        }
+      }, 5000);
 
-    return () => clearInterval(interval);
+      return () => clearInterval(interval);
+    }
   }, [idsCoin]);
 
   return (
@@ -36,9 +39,11 @@ const FrameJupiter: React.FC = () => {
         <div className="overflow-x-auto">
           <iframe
             className="scale-100"
-            src={`https://jup.ag/swap/${idsCoin}-USDT`}
+            //src={`https://jup.ag/swap/${idsCoin}-USDT`}
+
+            src={`https://jup.ag/swap/USDT-${idsCoin}`}
             width="100%"
-            height="700px"
+            height="1000px"
           ></iframe>
         </div>
       </div>
